@@ -1,0 +1,6 @@
+{
+  "name": "SmartLib AI — Intelligent Library Management System",
+  "description": "Intelligent AI-powered college library management system featuring catalog search, smart recommendations, borrowing tracking, QR code workflows, and automated fines.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

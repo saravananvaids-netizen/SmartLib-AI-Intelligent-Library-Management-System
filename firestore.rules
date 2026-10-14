@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isLibrarian() {
+      return isAuthenticated() && 
+        (request.auth.token.role == 'librarian' || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'librarian');
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User accounts
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isLibrarian();
+    }
+
+    // Students collection
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow write: if isLibrarian();
+    }
+
+    // Books and catalog (publicly readable to campus members, librarian writable)
+    match /books/{bookId} {
+      allow read: if isAuthenticated();
+      allow write: if isLibrarian();
+    }
+
+    // Physical book copies / inventory
+    match /bookCopies/{copyId} {
+      allow read: if isAuthenticated();
+      allow write: if isLibrarian();
+    }
+
+    // Borrow transactions (issuing, returning, fine status)
+    match /borrowTransactions/{transactionId} {
+      allow read: if isAuthenticated() && (isLibrarian() || resource.data.studentId == request.auth.uid);
+      allow create, update, delete: if isLibrarian();
+    }
+
+    // Reading lists & Favorites (private to student or accessible to librarian)
+    match /readingLists/{listId} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isLibrarian());
+    }
+
+    // Reading progress & goals
+    match /readingProgress/{progressId} {
+      allow read, write: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid || isLibrarian());
+    }
+
+    // In-app notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isLibrarian());
+      allow write: if isLibrarian() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // Library settings & policy rules
+    match /librarySettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isLibrarian();
+    }
+  }
+}
